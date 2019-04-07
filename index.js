@@ -7,11 +7,10 @@ wss.on('connection', ws => {
   ws.on('message', data => {
     var clients = Array.from(wss.clients);
     wss.clients.forEach(client => {
-      var id = clients.indexOf(ws);
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify({
           type: 'msg',
-          id: id,
+          id: clients.indexOf(ws) + 1,
           msg: data
         }));
       }

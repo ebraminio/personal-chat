@@ -1,14 +1,19 @@
 <script src="react.js"></script>
 <script src="react-dom.js"></script>
 <div id="root"></div>
+<style>
+body { background-color: black; color: #33FF00; font-family: monospace; }
+</style>
 <script>
+'use strict';
+
 const useState = React.useState, useEffect = React.useEffect;
 
 var userId = Math.ceil(Math.random() * 100);
 
 let ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/ws');
 ReactDOM.render(React.createElement(props => {
-  const [state, setState] = useState(props.chat);
+  const [messages, setMessages] = useState(props.chat);
 
   useEffect(() => {
     function listener(e) {
@@ -16,7 +21,7 @@ ReactDOM.render(React.createElement(props => {
       switch (packet.type) {
       case 'msg':
         decrypt(packet.msg).then(msg => {
-          setState(state => [packet.id + ': ' + msg, ...state]);
+          setMessages(messages => [{ id: packet.id, msg }, ...messages]);
         }, err => console.log('Not our message', err));
         break;
       case 'status':
@@ -29,17 +34,35 @@ ReactDOM.render(React.createElement(props => {
     return () => ws.removeEventListener('message', listener);
   }, [props]);
 
+  let [message, setMessage] = useState('');
+
+  function sendMessage() {
+    if (message === '') return;
+
+    encrypt(message).then(x => ws.send(x));
+    setMessage('');
+  }
+
   return React.createElement(React.Fragment, [], [
     React.createElement('input', {
       type: 'text',
       onKeyPress: e => {
-        if (e.key === 'Enter') {
-          encrypt(e.target.value).then(x => ws.send(x));
-          e.target.value = '';
-        }
-      }
+        if (e.key === 'Enter') sendMessage(e.target.value);
+      },
+      onChange: e => setMessage(e.target.value),
+      value: message
     }),
-    React.createElement('div', [], state.map(x => React.createElement('div', [], x)))
+    ' ',
+    React.createElement('button', { onClick: () => { sendMessage(); } }, 'Send'),
+    ' ',
+    // React.createElement('button', {
+    //   onClick: () => {
+    //   }
+    // }, '⎘'),
+    React.createElement('div', [], messages.map(({ id, msg }) => {
+      var msgElement = !msg.startsWith('data:image/') ? msg : React.createElement('img', { src: msg });
+      return React.createElement('div', [], [id, ': ', msgElement]);
+    }))
   ]);
 }, { chat: [] }), document.getElementById('root'));
 
@@ -54,7 +77,7 @@ ReactDOM.render(React.createElement(props => {
       { kty: 'oct', k: location.hash.slice(1), alg: 'A256CBC', ext: true },
       { name: 'AES-CBC' },
       false,
-      ["encrypt", "decrypt"]
+      ['encrypt', 'decrypt']
     ).then(key => {
       window.key = key;
     });
@@ -70,21 +93,33 @@ function base64StringToArray(s) {
 }
 
 const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+// https://github.com/diafygi/webcrypto-examples
 function encrypt(msg) {
   const iv = crypto.getRandomValues(new Uint8Array(16));
-  return crypto.subtle.encrypt({ name: "AES-CBC", iv: iv }, key, encoder.encode(msg))
+  return crypto.subtle.encrypt({ name: 'AES-CBC', iv: iv }, key, encoder.encode(msg))
     .then(encrypted => {
       return JSON.stringify([arrayToBase64String(iv), arrayToBase64String(new Uint8Array(encrypted))]);
     });
 }
-
-const decoder = new TextDecoder();
 function decrypt(json) {
   let [iv, data] = JSON.parse(json);
   return crypto.subtle.decrypt(
-    { name: "AES-CBC", iv: base64StringToArray(iv) },
+    { name: 'AES-CBC', iv: base64StringToArray(iv) },
     key,
     base64StringToArray(data)
   ).then(data => decoder.decode(data));
 }
+
+document.body.addEventListener('paste', function (e) {
+  if (e.clipboardData.files.length) {
+    var file = e.clipboardData.files[0];
+    var reader = new FileReader();
+    reader.addEventListener("load", function () {
+      encrypt(reader.result).then(x => ws.send(x));
+    });
+    reader.readAsDataURL(file);
+  }
+});
 </script>

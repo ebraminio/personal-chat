@@ -1,0 +1,90 @@
+<script src="react.js"></script>
+<script src="react-dom.js"></script>
+<div id="root"></div>
+<script>
+const useState = React.useState, useEffect = React.useEffect;
+
+var userId = Math.ceil(Math.random() * 100);
+
+let ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/ws');
+ReactDOM.render(React.createElement(props => {
+  const [state, setState] = useState(props.chat);
+
+  useEffect(() => {
+    function listener(e) {
+      var packet = JSON.parse(e.data);
+      switch (packet.type) {
+      case 'msg':
+        decrypt(packet.msg).then(msg => {
+          setState(state => [packet.id + ': ' + msg, ...state]);
+        }, err => console.log('Not our message', err));
+        break;
+      case 'status':
+        document.title = packet.id + ' / ' + packet.count;
+        break;
+      }
+    }
+
+    ws.addEventListener('message', listener);
+    return () => ws.removeEventListener('message', listener);
+  }, [props]);
+
+  return React.createElement(React.Fragment, [], [
+    React.createElement('input', {
+      type: 'text',
+      onKeyPress: e => {
+        if (e.key === 'Enter') {
+          encrypt(e.target.value).then(x => ws.send(x));
+          e.target.value = '';
+        }
+      }
+    }),
+    React.createElement('div', [], state.map(x => React.createElement('div', [], x)))
+  ]);
+}, { chat: [] }), document.getElementById('root'));
+
+(location.hash ?
+  Promise.resolve() :
+  crypto.subtle.generateKey({ name: 'AES-CBC', length: 256 }, true, [])
+    .then(key => crypto.subtle.exportKey('jwk', key))
+    .then(key => location.hash = key.k))
+  .then(() => {
+    crypto.subtle.importKey(
+      'jwk',
+      { kty: 'oct', k: location.hash.slice(1), alg: 'A256CBC', ext: true },
+      { name: 'AES-CBC' },
+      false,
+      ["encrypt", "decrypt"]
+    ).then(key => {
+      window.key = key;
+    });
+  });
+
+// https://stackoverflow.com/a/45313868
+function arrayToBase64String(a) {
+  return btoa(String.fromCharCode(...a));
+}
+function base64StringToArray(s) {
+  let asciiString = atob(s);
+  return new Uint8Array([...asciiString].map(char => char.charCodeAt(0)));
+}
+
+const encoder = new TextEncoder();
+function encrypt(msg) {
+  const iv = crypto.getRandomValues(new Uint8Array(16));
+  return crypto.subtle.encrypt({ name: "AES-CBC", iv: iv }, key, encoder.encode(msg))
+    .then(encrypted => {
+      return JSON.stringify([arrayToBase64String(iv), arrayToBase64String(new Uint8Array(encrypted))]);
+    });
+}
+
+const decoder = new TextDecoder();
+function decrypt(json) {
+  let [iv, data] = JSON.parse(json);
+  return crypto.subtle.decrypt(
+    { name: "AES-CBC", iv: base64StringToArray(iv) },
+    key,
+    base64StringToArray(data)
+  ).then(data => decoder.decode(data));
+}
+</script>

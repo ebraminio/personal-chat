@@ -2,9 +2,9 @@
   "name": "devicelog",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index2.js",
   "scripts": {
-    "start": "node ./index.js"
+    "start": "node ./index2.js"
   },
   "author": "",
   "license": "ISC",

@@ -1,22 +1,6 @@
 const http = require('http');
 const fs = require('fs');
 const WebSocket = require('ws');
-const wss = new WebSocket.Server({ noServer: true });
-
-wss.on('connection', ws => {
-  ws.on('message', data => {
-    var clients = Array.from(wss.clients);
-    wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({
-          type: 'msg',
-          id: clients.indexOf(ws) + 1,
-          msg: data
-        }));
-      }
-    });
-  });
-});
 
 setInterval(() => {
   var clients = Array.from(wss.clients);
@@ -49,16 +33,21 @@ var server = http.createServer((req, res) => {
   }
 });
 
-server.on('upgrade', (request, socket, head) => {
-  switch (request.url) {
-  case '/ws':
-    return wss.handleUpgrade(request, socket, head, ws => {
-      wss.emit('connection', ws, request);
+const wss = new WebSocket.Server({ server: server });
+
+wss.on('connection', ws => {
+  ws.on('message', data => {
+    var clients = Array.from(wss.clients);
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({
+          type: 'msg',
+          id: clients.indexOf(ws) + 1,
+          msg: data
+        }));
+      }
     });
-    
-  default:
-    return socket.destroy();
-  }
+  });
 });
 
 server.listen(+process.env.PORT || 2040);

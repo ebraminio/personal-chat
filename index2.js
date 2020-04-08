@@ -1,3 +1,5 @@
+// copied from https://github.com/shanet/WebRTC-Example
+
 const HTTPS_PORT = 8443;
 
 const fs = require('fs');

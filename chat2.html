@@ -1,11 +1,10 @@
+<!-- copied from https://github.com/shanet/WebRTC-Example -->
 <!DOCTYPE html>
 <html>
   <head>
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script>
-var localVideo;
 var localStream;
-var remoteVideo;
 var peerConnection;
 var uuid;
 var serverConnection;
@@ -108,7 +107,7 @@ function createUUID() {
   </head>
 
   <body>
-    <input type="checkbox" id="enableVideo" />
+    <label><input type="checkbox" id="enableVideo"> Video</label><br>
     <video id="localVideo" autoplay muted style="width:30%;"></video>
     <video id="remoteVideo" autoplay style="width:30%;"></video>
 

@@ -1,14 +1,14 @@
 <!-- copied from https://github.com/shanet/WebRTC-Example -->
 <!DOCTYPE html>
-<html>
-  <head>
-    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <script>
+<meta charset="utf8" />
+<label><input type="checkbox" id="enableVideo"> Video</label><br>
+<video id="localVideo" autoplay muted style="width:30%;"></video>
+<video id="remoteVideo" autoplay style="width:30%;"></video>
+<br />
+<input type="button" id="start" onclick="start(true)" value="Call"></input>
+<script>
 var localStream;
 var peerConnection;
-var uuid;
-var serverConnection;
-
 var peerConnectionConfig = {
   'iceServers': [
     { 'urls': 'stun:stun.stunprotocol.org:3478' },
@@ -16,23 +16,15 @@ var peerConnectionConfig = {
   ]
 };
 
-function pageReady() {
-  uuid = createUUID();
+var uuid = createUUID();
 
-  serverConnection = new WebSocket(location.origin.replace(/^http/, 'ws') + '/ws');
-  serverConnection.onmessage = gotMessageFromServer;
+var serverConnection = new WebSocket(location.origin.replace(/^http/, 'ws') + '/ws');
+serverConnection.onmessage = gotMessageFromServer;
 
-  var constraints = {
-    video: enableVideo.checked,
-    audio: true,
-  };
-
-  if (navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia(constraints).then(getUserMediaSuccess).catch(errorHandler);
-  } else {
-    alert('Your browser does not support getUserMedia API');
-  }
-}
+navigator.mediaDevices.getUserMedia({
+  video: enableVideo.checked,
+  audio: true,
+}).then(getUserMediaSuccess).catch(errorHandler);
 
 function getUserMediaSuccess(stream) {
   localStream = stream;
@@ -103,20 +95,4 @@ function createUUID() {
   return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 }
 
-    </script>
-  </head>
-
-  <body>
-    <label><input type="checkbox" id="enableVideo"> Video</label><br>
-    <video id="localVideo" autoplay muted style="width:30%;"></video>
-    <video id="remoteVideo" autoplay style="width:30%;"></video>
-
-    <br />
-
-    <input type="button" id="start" onclick="start(true)" value="Call"></input>
-
-    <script type="text/javascript">
-        pageReady();
-    </script>
-  </body>
-</html>
+</script>

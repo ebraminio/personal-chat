@@ -20,14 +20,11 @@ var peerConnectionConfig = {
 function pageReady() {
   uuid = createUUID();
 
-  localVideo = document.getElementById('localVideo');
-  remoteVideo = document.getElementById('remoteVideo');
-
   serverConnection = new WebSocket(location.origin.replace(/^http/, 'ws') + '/ws');
   serverConnection.onmessage = gotMessageFromServer;
 
   var constraints = {
-    // video: true,
+    video: enableVideo.checked,
     audio: true,
   };
 
@@ -111,8 +108,9 @@ function createUUID() {
   </head>
 
   <body>
-    <video id="localVideo" autoplay muted style="width:10%;"></video>
-    <video id="remoteVideo" autoplay style="width:10%;"></video>
+    <input type="checkbox" id="enableVideo" />
+    <video id="localVideo" autoplay muted style="width:30%;"></video>
+    <video id="remoteVideo" autoplay style="width:30%;"></video>
 
     <br />
 
